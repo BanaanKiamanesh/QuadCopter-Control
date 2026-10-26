@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
 
+# Fixed ids and no timestamp, so regenerated SVGs only change when the plots do
+plt.rcParams["svg.hashsalt"] = "QuadCopter-Control"
+
 
 class QuadCopterVisualizer:
     def __init__(self, Quad, Time, Motion, Reference, Control):
@@ -156,7 +159,7 @@ class QuadCopterVisualizer:
         self.Animation.save(FilePath, writer=PillowWriter(fps=self.AnimationFps))
 
     def SavePlotsFigure(self, FilePath):
-        self.PlotFigure.savefig(FilePath, format="svg", bbox_inches="tight")
+        self.PlotFigure.savefig(FilePath, format="svg", bbox_inches="tight", metadata={"Date": None})
 
     def SaveTrajectoryFigure(self, FilePath):
-        self.TrajectoryFigure.savefig(FilePath, format="svg", bbox_inches="tight")
+        self.TrajectoryFigure.savefig(FilePath, format="svg", bbox_inches="tight", metadata={"Date": None})
