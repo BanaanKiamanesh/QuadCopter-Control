@@ -14,24 +14,36 @@ class QuadCopter:
         self.I = np.diag([self.Ixx, self.Iyy, self.Izz])
         self.InvI = np.linalg.inv(self.I)
 
-        # Nominal Prediction Model
-        self.NominalMass = 0.440
-        self.NominalI = np.diag([0.0020, 0.0026, 0.0041])
-        self.NominalInvI = np.linalg.inv(self.NominalI)
-
-        # Observer Properties
         self.SystemOrder = 12
         self.InputOrder = 4
-        self.G = 90.0 * np.eye(self.SystemOrder)
+
+        # Nominal model used by the EKF and the MPC, with parameter errors
+        self.NominalMass = 0.440
+        self.NominalI = np.diag([0.0021, 0.0025, 0.0042])
+        self.NominalInvI = np.linalg.inv(self.NominalI)
+
+        # EKF Properties
+        # Measured outputs: [x, y, z, phi, theta, psi], sampled every IntegrationDt
+        self.MeasurementIndex = np.array([0, 1, 2, 6, 7, 8])
+        self.MeasurementNoise = np.array([1e-3, 1e-3, 1e-3,
+                                          np.deg2rad(0.1), np.deg2rad(0.1), np.deg2rad(0.1)])
+        self.ProcessNoise = np.array([1e-4, 1e-4, 1e-4,
+                                      0.1, 0.1, 0.1,
+                                      1e-4, 1e-4, 1e-4,
+                                      0.1, 0.1, 0.1])
+        self.InitialCovariance = np.array([0.1, 0.1, 0.1,
+                                           0.2, 0.2, 0.2,
+                                           0.05, 0.05, 0.05,
+                                           0.1, 0.1, 0.1])
 
         # Neural Network Properties
         self.NumNeurons = 24
         self.VSize = (self.SystemOrder + self.InputOrder, self.NumNeurons)
         self.WSize = (self.SystemOrder, self.NumNeurons)
 
-        self.eta1 = 30.0
+        self.eta1 = 10.0
         self.rho1 = 0.03
-        self.eta2 = 2.0
+        self.eta2 = 0.5
         self.rho2 = 0.02
 
         self.InputScale = np.array([
@@ -42,9 +54,8 @@ class QuadCopter:
             7.0, 0.05, 0.05, 0.05
         ])
 
-        rng = np.random.default_rng(123)
-        self.W = np.zeros(self.WSize)
-        self.V = 0.03 * rng.standard_normal(self.VSize)
+        # Learning starts once the EKF has settled from its initial error
+        self.LearningDelay = 0.5
 
         # MPC Properties
         self.ControlHorizon = 20
@@ -54,12 +65,12 @@ class QuadCopter:
         self.StateWeight = np.array([
             120.0, 120.0, 220.0,
             18.0, 18.0, 32.0,
-            8.0, 8.0, 55.0,
+            8.0, 8.0, 200.0,
             1.0, 1.0, 5.0
         ])
         self.TerminalWeight = 4.0 * self.StateWeight
         self.InputWeight = np.array([0.12, 4.0, 4.0, 2.5])
-        self.InputRateWeight = np.array([0.60, 8.0, 8.0, 6.0])
+        self.InputRateWeight = np.array([6.0, 80.0, 80.0, 60.0])
 
         self.MinInput = np.array([1.5, -0.040, -0.040, -0.028])
         self.MaxInput = np.array([8.0, 0.040, 0.040, 0.028])
@@ -81,8 +92,9 @@ class QuadCopter:
         self.StateConstraintMargin[9:12] = np.array([0.25, 0.25, 0.10])
 
         self.HoverInput = np.array([self.NominalMass * self.g, 0.0, 0.0, 0.0])
-        self.PreviousInput = np.array([self.Mass * self.g, 0.0, 0.0, 0.0])
-        self.ControlSequence = np.tile(self.PreviousInput, (self.ControlHorizon, 1))
+
+        self.ResetController()
+        self.ResetObserver()
 
     def RotationMatrix(self, Euler):
         Phi = Euler[0]
@@ -144,16 +156,27 @@ class QuadCopter:
     def PredictionModel(self, X, U):
         return self.NominalDyn(X, U) + self.NeuralModel(X, U)
 
-    def Observer(self, X_hat, Xerr, U):
-        return self.PredictionModel(X_hat, U) + self.G @ Xerr
+    def Step(self, X, U, Dt):
+        # Fourth-order Runge-Kutta integration of the true plant
+        K1 = self.SysDyn(X, U)
+        K2 = self.SysDyn(X + 0.5 * Dt * K1, U)
+        K3 = self.SysDyn(X + 0.5 * Dt * K2, U)
+        K4 = self.SysDyn(X + Dt * K3, U)
+        return X + Dt * (K1 + 2.0 * K2 + 2.0 * K3 + K4) / 6.0
 
-    def LearningRule(self, X_hat, Xerr, U):
-        Xbar = np.concatenate((X_hat, U)) / self.InputScale
+    def PredictionStep(self, X, U, Dt):
+        K1 = self.PredictionModel(X, U)
+        K2 = self.PredictionModel(X + 0.5 * Dt * K1, U)
+        K3 = self.PredictionModel(X + 0.5 * Dt * K2, U)
+        K4 = self.PredictionModel(X + Dt * K3, U)
+        return X + Dt * (K1 + 2.0 * K2 + 2.0 * K3 + K4) / 6.0
+
+    def WrapAngle(self, Angle):
+        return (Angle + np.pi) % (2.0 * np.pi) - np.pi
+
+    def LearningRule(self, X, U, ModelError):
+        Xbar = np.concatenate((X, U)) / self.InputScale
         Sigma = np.tanh(self.V.T @ Xbar)
-
-        # Unexplained model error estimated from the observer: when the
-        # estimation error settles, f(X) - PredictionModel(X_hat) = G @ Xerr.
-        ModelError = self.G @ Xerr
 
         dW = self.eta1 * ModelError.reshape(-1, 1) @ Sigma.reshape(1, -1) \
             - self.rho1 * self.W
@@ -164,22 +187,61 @@ class QuadCopter:
 
         return dW, dV
 
-    def Step(self, X, X_hat, U, dt):
-        Xerr = X - X_hat
+    def ResetObserver(self):
+        self.Rng = np.random.default_rng(7)
+        self.Covariance = np.diag(self.InitialCovariance ** 2)
+        self.LastPrediction = None
+        self.ObserverTime = 0.0
 
-        dX = self.SysDyn(X, U)
-        dX_hat = self.Observer(X_hat, Xerr, U)
-        dW, dV = self.LearningRule(X_hat, Xerr, U)
+        rng = np.random.default_rng(123)
+        self.W = np.zeros(self.WSize)
+        self.V = 0.03 * rng.standard_normal(self.VSize)
 
-        X = X + dt * dX
-        X_hat = X_hat + dt * dX_hat
-        self.W = self.W + dt * dW
-        self.V = self.V + dt * dV
+    def Measure(self, X):
+        # Noisy position and Euler angle measurements
+        return X[self.MeasurementIndex] + self.MeasurementNoise * self.Rng.standard_normal(6)
 
-        return X, X_hat
+    def PredictionJacobian(self, X, U):
+        Nx = self.SystemOrder
+        F = np.zeros((Nx, Nx))
+        for i in range(Nx):
+            dX = np.zeros(Nx)
+            dX[i] = 1e-6
+            F[:, i] = (self.PredictionModel(X + dX, U) - self.PredictionModel(X - dX, U)) / 2e-6
+        return F
+
+    def ObserverStep(self, X, Y, U, Dt):
+        # EKF correction with the noisy measurement
+        H = np.zeros((len(self.MeasurementIndex), self.SystemOrder))
+        H[np.arange(len(self.MeasurementIndex)), self.MeasurementIndex] = 1.0
+        R = np.diag(self.MeasurementNoise ** 2)
+        P = self.Covariance
+
+        Innovation = Y - X[self.MeasurementIndex]
+        Innovation[3:6] = self.WrapAngle(Innovation[3:6])
+        Gain = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
+        Correction = Gain @ Innovation
+        Joseph = np.eye(self.SystemOrder) - Gain @ H
+        P = Joseph @ P @ Joseph.T + Gain @ R @ Gain.T
+
+        # The correction rate is the dynamics the prediction model missed over the last step
+        if self.LastPrediction is not None and self.ObserverTime >= self.LearningDelay:
+            LastX, LastU = self.LastPrediction
+            dW, dV = self.LearningRule(LastX, LastU, Correction / Dt)
+            self.W = self.W + Dt * dW
+            self.V = self.V + Dt * dV
+
+        # EKF prediction with the NN-corrected model
+        X = X + Correction
+        self.LastPrediction = (X.copy(), U.copy())
+        F = np.eye(self.SystemOrder) + Dt * self.PredictionJacobian(X, U)
+        X = self.PredictionStep(X, U, Dt)
+        self.Covariance = F @ P @ F.T + np.diag(self.ProcessNoise ** 2) * Dt
+        self.ObserverTime += Dt
+        return X
 
     def ResetController(self):
-        self.PreviousInput = np.array([self.Mass * self.g, 0.0, 0.0, 0.0])
+        self.PreviousInput = np.array([self.NominalMass * self.g, 0.0, 0.0, 0.0])
         self.ControlSequence = np.tile(self.PreviousInput, (self.ControlHorizon, 1))
 
     def Reference(self, t):
