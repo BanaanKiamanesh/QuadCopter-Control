@@ -4,7 +4,7 @@
 
 **Measured outputs:** position $`\mathbf p`$ and Euler angles $`\boldsymbol\eta`$ only, with sensor noise. An extended Kalman filter estimates the full state, the neural network learns the model error from the filter's corrections, and the MPC predicts with the corrected model.
 
-The nominal model uses $`\hat m=0.440`$ kg and $`\hat{\mathbf I}=\mathrm{diag}(0.0021,0.0025,0.0042)`$ kg m², which are 6–9% off the true values. Sensors, noise, initial estimation errors and trajectory are the same as in demos 4, 7 and 8.
+The nominal model uses $`\hat m=0.440`$ kg and $`\hat{\mathbf I}=\mathrm{diag}(0.0021,0.0025,0.0042)`$ kg m², which are 6–9% off the true values. Sensors, noise, initial estimation errors and trajectory are the same as in demos 4, 5 and 7–9. Demo 5 is the conventional counterpart: the same MPC, with a constant disturbance estimate in place of the network.
 
 ## NN-Corrected Prediction Model
 

@@ -4,7 +4,7 @@
 
 **Measured outputs:** position $`\mathbf p`$ and Euler angles $`\boldsymbol\eta`$ only, with sensor noise. The controller never sees the true state: it acts on the estimate from an extended Kalman filter.
 
-The EKF and the LQR design both use nominal parameters $`\hat m=0.440`$ kg and $`\hat{\mathbf I}=\mathrm{diag}(0.0021,0.0025,0.0042)`$ kg m², which are 6–9% off the true values. Sensors, noise, initial estimation errors and trajectory are the same as in demo 4, so the two observer-based designs can be compared directly.
+The EKF and the LQR design both use nominal parameters $`\hat m=0.440`$ kg and $`\hat{\mathbf I}=\mathrm{diag}(0.0021,0.0025,0.0042)`$ kg m², which are 6–9% off the true values. Sensors, noise, initial estimation errors and trajectory are the same as in demos 4–6, so the observer-based designs can be compared directly.
 
 ## Reference and Feedforward
 
