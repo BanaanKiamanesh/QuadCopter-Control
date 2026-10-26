@@ -4,7 +4,7 @@
 
 **Measured outputs:** position $`\mathbf p`$ and Euler angles $`\boldsymbol\eta`$ only, with sensor noise. An extended Kalman filter estimates the full state, the neural network learns the model error from the filter's corrections, and the MPC predicts with the corrected model.
 
-The nominal model uses $`\hat m=0.440`$ kg and $`\hat{\mathbf I}=\mathrm{diag}(0.0021,0.0025,0.0042)`$ kg m², which are 6–9% off the true values. Sensors, noise, initial estimation errors and trajectory are the same as in demos 4, 6 and 7.
+The nominal model uses $`\hat m=0.440`$ kg and $`\hat{\mathbf I}=\mathrm{diag}(0.0021,0.0025,0.0042)`$ kg m², which are 6–9% off the true values. Sensors, noise, initial estimation errors and trajectory are the same as in demos 4, 7 and 8.
 
 ## NN-Corrected Prediction Model
 
@@ -49,7 +49,7 @@ J=\sum_{k=1}^{N}\|\mathbf x_k-\mathbf x_{d,k}\|_Q^2
 
 subject to actuator limits, input-rate limits, and constraints on altitude, velocity, roll and pitch, and body rates. The QP is solved by an ADMM solver written for this demo, warm-started from the shifted previous solution.
 
-The NN learning rates and the MPC weights were tuned by grid search. The search minimized position and yaw error while penalizing thrust and torque chattering, and the chosen values were checked on five noise seeds. The final values are $`\eta_1=10`$, $`\eta_2=0.5`$ and $`\rho_1=0.03`$, $`\rho_2=0.02`$, a yaw state weight of 200, and input-rate weights $`S=\mathrm{diag}(6,80,80,60)`$. The EKF process noise is the same as in demo 6.
+The NN learning rates and the MPC weights were tuned by grid search. The search minimized position and yaw error while penalizing thrust and torque chattering, and the chosen values were checked on five noise seeds. The final values are $`\eta_1=10`$, $`\eta_2=0.5`$ and $`\rho_1=0.03`$, $`\rho_2=0.02`$, a yaw state weight of 200, and input-rate weights $`S=\mathrm{diag}(6,80,80,60)`$. The EKF process noise is the same as in demo 7.
 
 `report.pdf` documents the original version of this design, in which a neural-network observer replaced the EKF.
 
