@@ -15,21 +15,21 @@ Demos 1–3 control from the true state. Demo 4 measures only noisy position and
 
 All designs are evaluated on nonlinear rigid-body dynamics:
 
-$$
+```math
 \begin{aligned}
 m\ddot{\mathbf p} &= T R(\boldsymbol\eta)\mathbf e_3 - mg\mathbf e_3, \\
 \mathbf I\dot{\boldsymbol\omega} &= \boldsymbol\tau - \boldsymbol\omega\times(\mathbf I\boldsymbol\omega), \\
 \boldsymbol\omega &= E(\boldsymbol\eta)\dot{\boldsymbol\eta}.
 \end{aligned}
-$$
+```
 
-Here $\boldsymbol\eta=[\phi,\theta,\psi]^\top$ and $\mathbf u=[T,\tau_\phi,\tau_\theta,\tau_\psi]^\top$.
+Here $`\boldsymbol\eta=[\phi,\theta,\psi]^\top`$ and $`\mathbf u=[T,\tau_\phi,\tau_\theta,\tau_\psi]^\top`$.
 
-$$
+```math
 m=0.468\ \mathrm{kg},\qquad
-\mathbf I=\operatorname{diag}(0.0023,0.0023,0.0046)\ \mathrm{kg\,m^2},\qquad
+\mathbf I=\mathrm{diag}(0.0023,0.0023,0.0046)\ \mathrm{kg\,m^2},\qquad
 g=9.81\ \mathrm{m/s^2}.
-$$
+```
 
 ## Running
 
