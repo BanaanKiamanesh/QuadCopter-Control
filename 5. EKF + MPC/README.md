@@ -53,7 +53,7 @@ Over the 10 s simulation:
 | Metric | Value |
 |---|---|
 | Position RMSE ($`x`$, $`y`$, $`z`$) | 0.008, 0.024, 0.007 m |
-| Total position RMSE | 0.027 m |
+| Total position RMSE | 0.026 m |
 | Total position RMSE without the disturbance estimate | 0.058 m |
 | Yaw RMSE | 0.019 rad |
 | Estimated vertical disturbance at the end | −0.61 m/s² (true model error −0.65 m/s²) |

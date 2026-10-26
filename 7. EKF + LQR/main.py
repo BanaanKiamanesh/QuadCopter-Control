@@ -1,9 +1,22 @@
+import io
 import os
+import zipfile
 import numpy as np
 import matplotlib.pyplot as plt
 
 from quadcopter import QuadCopter
 from visualization import QuadCopterVisualizer
+
+
+def SaveSimulationData(FilePath, **Arrays):
+    # .npz archive with fixed timestamps, so the file only changes when the data does
+    with zipfile.ZipFile(FilePath, "w", zipfile.ZIP_DEFLATED) as Archive:
+        for Name, Array in Arrays.items():
+            Buffer = io.BytesIO()
+            np.save(Buffer, np.asarray(Array))
+            Info = zipfile.ZipInfo(Name + ".npy", date_time=(2026, 1, 1, 0, 0, 0))
+            Info.compress_type = zipfile.ZIP_DEFLATED
+            Archive.writestr(Info, Buffer.getvalue())
 
 
 def Simulate(SimTime):
@@ -65,6 +78,8 @@ if __name__ == "__main__":
     Visualizer.SavePlotsFigure(os.path.join(OutputDir, "tracking_plots.svg"))
     Visualizer.SaveTrajectoryFigure(os.path.join(OutputDir, "trajectory_3d.svg"))
     Visualizer.SaveAnimation(os.path.join(OutputDir, "quadcopter_animation.gif"))
+    SaveSimulationData(os.path.join(OutputDir, "simulation_data.npz"), Name="7. EKF + LQR",
+                       Time=Time, Motion=Motion, Estimate=Estimate, Reference=Reference, Control=Control)
 
     if plt.get_backend().lower() != "agg":
         plt.show()

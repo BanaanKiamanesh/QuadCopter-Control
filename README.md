@@ -42,7 +42,7 @@ cd "2. Yaw Angle + Position Controller"
 python main.py
 ```
 
-Each run prints tracking metrics, opens the plots, and rewrites the files in that demo's `results/` folder. Set `MPLBACKEND=Agg` to run without opening windows.
+Each run prints tracking metrics, opens the plots, and rewrites the files in that demo's `results/` folder. That includes `simulation_data.npz`, which holds the time, true state, reference, inputs and, for demos 4–9, the state estimate. Set `MPLBACKEND=Agg` to run without opening windows.
 
 ## Results
 
@@ -50,15 +50,24 @@ Each run prints tracking metrics, opens the plots, and rewrites the files in tha
 |---|---|---|
 | 1. Attitude + Elevation | 0.046 m (elevation only) | 0.81° |
 | 2. Yaw + Position | 0.019 m | 0.022 rad |
-| 3. Feedback Linearization | 0.038 m | 0.010 rad |
+| 3. Feedback Linearization | 0.024 m | 0.009 rad |
 | 4. Sliding-Mode Controller + Observer | 0.032 m | 0.011 rad |
-| 5. EKF + MPC | 0.027 m | 0.019 rad |
+| 5. EKF + MPC | 0.026 m | 0.019 rad |
 | 6. EKF + NN-Adaptive MPC | 0.040 m | 0.019 rad |
 | 7. EKF + LQR | 0.013 m | 0.013 rad |
 | 8. EKF + Backstepping | 0.021 m | 0.012 rad |
 | 9. EKF + Geometric Control | 0.020 m | 0.012 rad |
 
 All demos measure error over the whole 10 s run. Each demo's README has its plots and animation.
+
+## Comparison
+
+[`comparison.ipynb`](comparison.ipynb) loads the saved data of all nine demos and compares them on the same metrics: tracking error, error over time, flight paths, control effort and state estimation. It ends with a ranking of the observer-based demos 4–9, which share sensors, model error and trajectory. The notebook is saved with its outputs, so it can be read on GitHub without running it. To rerun it after regenerating the demos:
+
+```bash
+pip install notebook
+jupyter notebook comparison.ipynb
+```
 
 ## License
 

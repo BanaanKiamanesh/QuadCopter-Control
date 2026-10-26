@@ -36,13 +36,13 @@ class QuadCopter:
         ])
         self.InvMixingMatrix = np.linalg.inv(self.MixingMatrix)
 
-        Lambda = 1.6
+        Lambda = 4.0
         self.PositionK3 = 4.0 * Lambda
         self.PositionK2 = 6.0 * Lambda ** 2
         self.PositionK1 = 4.0 * Lambda ** 3
         self.PositionK0 = Lambda ** 4
-        self.YawKp = 9.0
-        self.YawKd = 6.0
+        self.YawKp = 16.0
+        self.YawKd = 8.0
         self.MaxThrustAcceleration = 18.0
 
     def RotationMatrix(self, Euler):
@@ -95,26 +95,16 @@ class QuadCopter:
 
 
     def ReferenceDerivatives(self, TimeValue):
-        # Position, velocity, acceleration, jerk, and snap.
+        # Position, velocity, acceleration, jerk, and snap of the figure-8 shared with the other demos.
         C, S = np.cos, np.sin
-        Position = np.array([0.7 * C(0.6 * TimeValue),
-                             0.7 * S(0.6 * TimeValue),
-                             2.5 + 0.25 * S(0.5 * TimeValue)])
-        Velocity = np.array([-0.42 * S(0.6 * TimeValue),
-                              0.42 * C(0.6 * TimeValue),
-                              0.125 * C(0.5 * TimeValue)])
-        Acceleration = np.array([-0.252 * C(0.6 * TimeValue),
-                                 -0.252 * S(0.6 * TimeValue),
-                                 -0.0625 * S(0.5 * TimeValue)])
-        Jerk = np.array([0.1512 * S(0.6 * TimeValue),
-                         -0.1512 * C(0.6 * TimeValue),
-                         -0.03125 * C(0.5 * TimeValue)])
-        Snap = np.array([0.09072 * C(0.6 * TimeValue),
-                         0.09072 * S(0.6 * TimeValue),
-                         0.015625 * S(0.5 * TimeValue)])
-        Yaw = 0.25 * S(0.45 * TimeValue)
-        YawRate = 0.1125 * C(0.45 * TimeValue)
-        YawAcceleration = -0.050625 * S(0.45 * TimeValue)
+        Position = np.array([C(TimeValue), S(2.0 * TimeValue), 2.5 + S(TimeValue)])
+        Velocity = np.array([-S(TimeValue), 2.0 * C(2.0 * TimeValue), C(TimeValue)])
+        Acceleration = np.array([-C(TimeValue), -4.0 * S(2.0 * TimeValue), -S(TimeValue)])
+        Jerk = np.array([S(TimeValue), -8.0 * C(2.0 * TimeValue), -C(TimeValue)])
+        Snap = np.array([C(TimeValue), 16.0 * S(2.0 * TimeValue), S(TimeValue)])
+        Yaw = S(TimeValue)
+        YawRate = C(TimeValue)
+        YawAcceleration = -S(TimeValue)
         return Position, Velocity, Acceleration, Jerk, Snap, Yaw, YawRate, YawAcceleration
 
     def Reference(self, TimeValue):

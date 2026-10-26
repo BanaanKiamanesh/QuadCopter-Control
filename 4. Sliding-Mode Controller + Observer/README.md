@@ -70,7 +70,7 @@ Over the 10 s simulation:
 
 | Metric | Value |
 |---|---|
-| Position RMSE ($`x`$, $`y`$, $`z`$) | 0.010, 0.028, 0.013 m |
+| Position RMSE ($`x`$, $`y`$, $`z`$) | 0.009, 0.028, 0.013 m |
 | Total position RMSE | 0.032 m |
 | Yaw RMSE | 0.011 rad |
 | Observer velocity RMSE ($`t\ge1`$ s) | 0.006, 0.017, 0.018 m/s |
