@@ -9,36 +9,48 @@ from visualization import QuadCopterVisualizer
 def Simulate(SimTime):
     Q = QuadCopter()
     Q.ResetController()
+    Q.ResetObserver()
 
     X = np.zeros(Q.SystemOrder)
     X[0:6] = Q.Reference(0.0)[0:6]
 
+    # Observer starts with position, attitude, velocity and rate errors
+    Z = Q.ObserverFromState(X)
+    Z[0:3] += np.array([0.08, -0.06, -0.10])
+    Z[3:6] += np.array([0.03, -0.03, 0.05])
+    Z[6:9] += np.array([0.20, -0.15, 0.10])
+    Z[9:12] += np.array([0.10, -0.10, 0.05])
+
     Time = np.arange(0.0, SimTime + 0.5 * Q.ControlDt, Q.ControlDt)
     Motion = np.zeros((len(Time), Q.SystemOrder))
+    Estimate = np.zeros((len(Time), Q.SystemOrder))
     Reference = np.zeros((len(Time), Q.SystemOrder))
     Control = np.zeros((len(Time), Q.InputOrder))
 
     for Index, TimeValue in enumerate(Time):
         Motion[Index] = X
+        Estimate[Index] = Q.StateFromObserver(Z)
         Reference[Index] = Q.Reference(TimeValue)
 
         if Index == len(Time) - 1:
             break
 
-        U = Q.ControlInput(X, TimeValue)
+        # The controller only sees the observer estimate
+        U = Q.ControlInput(Estimate[Index], TimeValue)
         Control[Index] = U
 
         for _ in range(round(Q.ControlDt / Q.IntegrationDt)):
+            Z = Q.ObserverStep(Z, Q.Measure(X), U, Q.IntegrationDt)
             X = Q.Step(X, U, Q.IntegrationDt)
 
     Control[-1] = Control[-2]
-    return Q, Time, Motion, Reference, Control
+    return Q, Time, Motion, Estimate, Reference, Control
 
 
 if __name__ == "__main__":
-    Q, Time, Motion, Reference, Control = Simulate(10.0)
+    Q, Time, Motion, Estimate, Reference, Control = Simulate(10.0)
 
-    Visualizer = QuadCopterVisualizer(Q, Time, Motion, Reference, Control)
+    Visualizer = QuadCopterVisualizer(Q, Time, Motion, Estimate, Reference, Control)
     Visualizer.PrintResults()
     Visualizer.CreatePlotsFigure()
     Visualizer.CreateTrajectoryFigure()

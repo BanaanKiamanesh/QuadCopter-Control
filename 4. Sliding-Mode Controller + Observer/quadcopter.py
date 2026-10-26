@@ -37,15 +37,31 @@ class QuadCopter:
         self.InvMixingMatrix = np.linalg.inv(self.MixingMatrix)
 
         # Controller Properties
-        self.PositionLambda = np.array([1.6, 1.6, 2.0])
+        self.PositionLambda = np.array([5.0, 5.0, 6.25])
         self.PositionSwitch = np.array([3.0, 3.0, 3.0])
-        self.PositionBoundary = np.array([0.25, 0.25, 0.25])
+        self.PositionBoundary = np.array([0.5, 0.5, 0.5])
 
-        self.AngularLambda = np.array([4.0, 4.0, 3.0])
-        self.AngularSwitch = np.array([10.0, 10.0, 8.0])
-        self.AngularBoundary = np.array([0.12, 0.12, 0.12])
+        self.AngularLambda = np.array([8.0, 8.0, 6.0])
+        self.AngularSwitch = np.array([15.0, 15.0, 12.0])
+        self.AngularBoundary = np.array([0.6, 0.6, 0.6])
+
+        # Observer Properties
+        # Measured outputs: [x, y, z, phi, theta, psi], sampled every IntegrationDt
+        self.MeasurementNoise = np.array([1e-3, 1e-3, 1e-3,
+                                          np.deg2rad(0.1), np.deg2rad(0.1), np.deg2rad(0.1)])
+        # Nominal model used by the observer, with parameter errors
+        self.ObserverMass = 0.440
+        self.ObserverI = np.diag([0.0021, 0.0025, 0.0042])
+        self.ObserverInvI = np.linalg.inv(self.ObserverI)
+        # Linear output-error gains and switching gains for each measured channel
+        self.ObserverAlpha1 = np.array([10.0, 10.0, 10.0, 10.0, 10.0, 10.0])
+        self.ObserverAlpha2 = np.array([25.0, 25.0, 25.0, 100.0, 100.0, 100.0])
+        self.ObserverK1 = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
+        self.ObserverK2 = np.array([1.0, 1.0, 2.0, 1.0, 1.0, 1.0])
+        self.ObserverBoundary = np.array([5e-3, 5e-3, 5e-3, 5e-3, 5e-3, 5e-3])
 
         self.ResetController()
+        self.ResetObserver()
 
     def RotationMatrix(self, Euler):
         Phi, Theta, Psi = Euler
@@ -66,6 +82,17 @@ class QuadCopter:
             [1.0, 0.0, -np.sin(Theta)],
             [0.0, np.cos(Phi), np.cos(Theta) * np.sin(Phi)],
             [0.0, -np.sin(Phi), np.cos(Theta) * np.cos(Phi)]
+        ])
+
+    def EulerRateMatrixDot(self, Euler, EulerDot):
+        Phi, Theta = Euler[0:2]
+        PhiDot, ThetaDot = EulerDot[0:2]
+        return np.array([
+            [0.0, 0.0, -np.cos(Theta) * ThetaDot],
+            [0.0, -np.sin(Phi) * PhiDot,
+             -np.sin(Theta) * ThetaDot * np.sin(Phi) + np.cos(Theta) * np.cos(Phi) * PhiDot],
+            [0.0, -np.cos(Phi) * PhiDot,
+             -np.sin(Theta) * ThetaDot * np.cos(Phi) - np.cos(Theta) * np.sin(Phi) * PhiDot]
         ])
 
     def EulerRates(self, X):
@@ -93,6 +120,47 @@ class QuadCopter:
         K3 = self.SysDyn(X + 0.5 * Dt * K2, U)
         K4 = self.SysDyn(X + Dt * K3, U)
         return X + Dt * (K1 + 2.0 * K2 + 2.0 * K3 + K4) / 6.0
+
+    def ResetObserver(self):
+        self.Rng = np.random.default_rng(7)
+
+    def Measure(self, X):
+        # Noisy position and Euler angle measurements
+        return np.r_[X[0:3], X[6:9]] + self.MeasurementNoise * self.Rng.standard_normal(6)
+
+    def ObserverFromState(self, X):
+        # Observer states: [position, Euler angles, velocity, Euler rates]
+        return np.r_[X[0:3], X[6:9], X[3:6], self.EulerRates(X)]
+
+    def StateFromObserver(self, Z):
+        Euler = Z[3:6]
+        return np.r_[Z[0:3], Z[6:9], Euler, self.EulerRateMatrix(Euler) @ Z[9:12]]
+
+    def ObserverModel(self, Z, U):
+        # Nominal second derivatives of position and Euler angles
+        X = self.StateFromObserver(Z)
+        Euler = Z[3:6]
+        EulerDot = Z[9:12]
+        Omega = X[9:12]
+
+        Acceleration = np.array([0.0, 0.0, -self.g]) + self.RotationMatrix(Euler)[:, 2] * (U[0] / self.ObserverMass)
+        OmegaDot = self.ObserverInvI @ (U[1:4] - np.cross(Omega, self.ObserverI @ Omega))
+        EulerAcceleration = np.linalg.solve(
+            self.EulerRateMatrix(Euler),
+            OmegaDot - self.EulerRateMatrixDot(Euler, EulerDot) @ EulerDot
+        )
+        return np.r_[Acceleration, EulerAcceleration]
+
+    def ObserverStep(self, Z, Y, U, Dt):
+        # Sliding-mode observer driven by the output error
+        Error = Y - Z[0:6]
+        Error[3:6] = self.WrapAngle(Error[3:6])
+        Switching = np.clip(Error / self.ObserverBoundary, -1.0, 1.0)
+
+        dZ = np.zeros(12)
+        dZ[0:6] = Z[6:12] + self.ObserverAlpha1 * Error + self.ObserverK1 * Switching
+        dZ[6:12] = self.ObserverModel(Z, U) + self.ObserverAlpha2 * Error + self.ObserverK2 * Switching
+        return Z + Dt * dZ
 
     def Reference(self, TimeValue):
         Xref = np.zeros(self.SystemOrder)
@@ -129,19 +197,11 @@ class QuadCopter:
 
     def EulerAccelerationToTorque(self, X, EulerAcceleration):
         # Convert the desired Euler acceleration into body torques.
-        Phi, Theta = X[6:8]
         EulerDot = self.EulerRates(X)
-        PhiDot, ThetaDot = EulerDot[0:2]
         Omega = X[9:12]
 
         E = self.EulerRateMatrix(X[6:9])
-        Edot = np.array([
-            [0.0, 0.0, -np.cos(Theta) * ThetaDot],
-            [0.0, -np.sin(Phi) * PhiDot,
-             -np.sin(Theta) * ThetaDot * np.sin(Phi) + np.cos(Theta) * np.cos(Phi) * PhiDot],
-            [0.0, -np.cos(Phi) * PhiDot,
-             -np.sin(Theta) * ThetaDot * np.cos(Phi) - np.cos(Theta) * np.sin(Phi) * PhiDot]
-        ])
+        Edot = self.EulerRateMatrixDot(X[6:9], EulerDot)
 
         OmegaDot = E @ EulerAcceleration + Edot @ EulerDot
         return self.I @ OmegaDot + np.cross(Omega, self.I @ Omega)

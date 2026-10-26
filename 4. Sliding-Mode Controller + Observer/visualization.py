@@ -4,10 +4,11 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 
 
 class QuadCopterVisualizer:
-    def __init__(self, Quad, Time, Motion, Reference, Control):
+    def __init__(self, Quad, Time, Motion, Estimate, Reference, Control):
         self.Quad = Quad
         self.Time = Time
         self.Motion = Motion
+        self.Estimate = Estimate
         self.Reference = Reference
         self.Control = Control
 
@@ -27,9 +28,17 @@ class QuadCopterVisualizer:
         print("Total position RMSE (m):", round(TotalRMSE, 4))
         print("Yaw RMSE (rad):", round(YawRMSE, 4))
 
+        # Observer accuracy after the initial transient
+        Check = self.Time >= 1.0
+        EstimateError = self.Estimate[Check] - self.Motion[Check]
+        print("Observer position RMSE (m):", np.round(np.sqrt(np.mean(EstimateError[:, 0:3] ** 2, axis=0)), 5))
+        print("Observer velocity RMSE (m/s):", np.round(np.sqrt(np.mean(EstimateError[:, 3:6] ** 2, axis=0)), 4))
+        print("Observer angle RMSE (deg):", np.round(np.rad2deg(np.sqrt(np.mean(EstimateError[:, 6:9] ** 2, axis=0))), 4))
+        print("Observer body rate RMSE (rad/s):", np.round(np.sqrt(np.mean(EstimateError[:, 9:12] ** 2, axis=0)), 4))
+
     def CreatePlotsFigure(self):
-        self.PlotFigure, Axes = plt.subplots(3, 2, figsize=(13, 10))
-        self.PlotFigure.suptitle("QuadCopter Tracking and Control", fontsize=14)
+        self.PlotFigure, Axes = plt.subplots(4, 2, figsize=(13, 13))
+        self.PlotFigure.suptitle("QuadCopter Tracking and Control with Sliding-Mode Observer", fontsize=14)
 
         Ax = Axes[0, 0]
         for Index, Label in enumerate(("x", "y", "z")):
@@ -59,12 +68,26 @@ class QuadCopterVisualizer:
 
         Ax = Axes[2, 0]
         Ax.plot(self.Time, self.Control[:, 0], label="Total thrust")
-        Ax.set(title="Total Thrust", xlabel="Time (s)", ylabel="Thrust (N)")
+        Ax.set(title="Total Thrust", ylabel="Thrust (N)")
 
         Ax = Axes[2, 1]
         for Index, Label in enumerate(("Roll", "Pitch", "Yaw")):
             Ax.plot(self.Time, self.Control[:, Index + 1], label=Label)
-        Ax.set(title="Body Torques", xlabel="Time (s)", ylabel="Torque (N m)")
+        Ax.set(title="Body Torques", ylabel="Torque (N m)")
+        Ax.legend()
+
+        EstimateError = self.Estimate - self.Motion
+
+        Ax = Axes[3, 0]
+        for Index, Label in enumerate(("vx", "vy", "vz")):
+            Ax.plot(self.Time, EstimateError[:, Index + 3], label=Label)
+        Ax.set(title="Velocity Estimation Error", xlabel="Time (s)", ylabel="Error (m/s)", ylim=(-0.25, 0.25))
+        Ax.legend()
+
+        Ax = Axes[3, 1]
+        for Index, Label in enumerate(("p", "q", "r")):
+            Ax.plot(self.Time, EstimateError[:, Index + 9], label=Label)
+        Ax.set(title="Body Rate Estimation Error", xlabel="Time (s)", ylabel="Error (rad/s)", ylim=(-0.25, 0.25))
         Ax.legend()
 
         for Ax in Axes.flat:
