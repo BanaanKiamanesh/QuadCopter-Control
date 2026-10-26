@@ -57,3 +57,7 @@ Each run prints tracking metrics, opens the plots, and rewrites the files in tha
 | 8. EKF + Geometric Control | 0.020 m | 0.012 rad |
 
 All demos measure error over the whole 10 s run. Each demo's README has its plots and animation.
+
+## License
+
+[MIT](LICENSE)
