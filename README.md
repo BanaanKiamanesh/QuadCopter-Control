@@ -72,3 +72,41 @@ jupyter notebook comparison.ipynb
 ## License
 
 [MIT](LICENSE)
+
+## References
+
+Quadrotor modelling and flatness (all demos; flat reference in demos 7–9):
+
+1. R. Mahony, V. Kumar and P. Corke, "Multirotor aerial vehicles: Modeling, estimation, and control of quadrotor," *IEEE Robotics & Automation Magazine*, vol. 19, no. 3, pp. 20–32, 2012. [doi:10.1109/MRA.2012.2206474](https://doi.org/10.1109/MRA.2012.2206474)
+2. T. Luukkonen, "Modelling and control of quadcopter," independent research project in applied mathematics, Aalto University, 2011.
+3. M. Fliess, J. Lévine, P. Martin and P. Rouchon, "Flatness and defect of non-linear systems: Introductory theory and examples," *International Journal of Control*, vol. 61, no. 6, pp. 1327–1361, 1995. [doi:10.1080/00207179508921959](https://doi.org/10.1080/00207179508921959)
+4. D. Mellinger and V. Kumar, "Minimum snap trajectory generation and control for quadrotors," in *Proc. IEEE International Conference on Robotics and Automation (ICRA)*, 2011, pp. 2520–2525. [doi:10.1109/ICRA.2011.5980409](https://doi.org/10.1109/ICRA.2011.5980409)
+
+Nonlinear control (demos 3, 4 and 8):
+
+5. A. Isidori, *Nonlinear Control Systems*, 3rd ed. London: Springer, 1995.
+6. H. K. Khalil, *Nonlinear Systems*, 3rd ed. Upper Saddle River, NJ: Prentice Hall, 2002.
+7. J.-J. E. Slotine and W. Li, *Applied Nonlinear Control*. Englewood Cliffs, NJ: Prentice Hall, 1991.
+8. J.-J. E. Slotine, J. K. Hedrick and E. A. Misawa, "On sliding observers for nonlinear systems," *Journal of Dynamic Systems, Measurement, and Control*, vol. 109, no. 3, pp. 245–252, 1987. [doi:10.1115/1.3143852](https://doi.org/10.1115/1.3143852)
+9. S. Bouabdallah and R. Siegwart, "Backstepping and sliding-mode techniques applied to an indoor micro quadrotor," in *Proc. IEEE International Conference on Robotics and Automation (ICRA)*, 2005, pp. 2247–2252. [doi:10.1109/ROBOT.2005.1570447](https://doi.org/10.1109/ROBOT.2005.1570447)
+10. M. Krstić, I. Kanellakopoulos and P. Kokotović, *Nonlinear and Adaptive Control Design*. New York: Wiley, 1995.
+
+Geometric control (demo 9):
+
+11. T. Lee, M. Leok and N. H. McClamroch, "Geometric tracking control of a quadrotor UAV on SE(3)," in *Proc. 49th IEEE Conference on Decision and Control (CDC)*, 2010, pp. 5420–5425. [doi:10.1109/CDC.2010.5717652](https://doi.org/10.1109/CDC.2010.5717652)
+
+State estimation and LQR (demos 5–9):
+
+12. D. Simon, *Optimal State Estimation: Kalman, H∞, and Nonlinear Approaches*. Hoboken, NJ: Wiley, 2006.
+13. B. D. O. Anderson and J. B. Moore, *Optimal Control: Linear Quadratic Methods*. Englewood Cliffs, NJ: Prentice Hall, 1990.
+
+Model predictive control and QP solvers (demos 5 and 6):
+
+14. J. B. Rawlings, D. Q. Mayne and M. M. Diehl, *Model Predictive Control: Theory, Computation, and Design*, 2nd ed. Madison, WI: Nob Hill Publishing, 2017.
+15. G. Pannocchia and J. B. Rawlings, "Disturbance models for offset-free model-predictive control," *AIChE Journal*, vol. 49, no. 2, pp. 426–437, 2003. [doi:10.1002/aic.690490213](https://doi.org/10.1002/aic.690490213)
+16. S. Boyd, N. Parikh, E. Chu, B. Peleato and J. Eckstein, "Distributed optimization and statistical learning via the alternating direction method of multipliers," *Foundations and Trends in Machine Learning*, vol. 3, no. 1, pp. 1–122, 2011. [doi:10.1561/2200000016](https://doi.org/10.1561/2200000016)
+17. B. Stellato, G. Banjac, P. Goulart, A. Bemporad and S. Boyd, "OSQP: An operator splitting solver for quadratic programs," *Mathematical Programming Computation*, vol. 12, no. 4, pp. 637–672, 2020. [doi:10.1007/s12532-020-00179-2](https://doi.org/10.1007/s12532-020-00179-2)
+
+Neural-network adaptive control (demo 6):
+
+18. H. A. Talebi, F. Abdollahi, R. V. Patel and K. Khorasani, *Neural Network-Based State Estimation of Nonlinear Systems: Application to Fault Detection and Isolation*, Lecture Notes in Control and Information Sciences, vol. 395. New York: Springer, 2010. [doi:10.1007/978-1-4419-1438-5](https://doi.org/10.1007/978-1-4419-1438-5)
